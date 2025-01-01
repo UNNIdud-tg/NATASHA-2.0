@@ -8,7 +8,7 @@ from pymongo.errors import DuplicateKeyError
 from umongo import Instance, Document, fields
 from motor.motor_asyncio import AsyncIOMotorClient
 from marshmallow.exceptions import ValidationError
-from info import DATABASE_URI, DATABASE_NAME, COLLECTION_NAME, USE_CAPTION_FILTER, MAX_B_TN, SECONDDB_URI
+from info import DATABASE_URI, DATABASE_NAME, COLLECTION_NAME, USE_CAPTION_FILTER, MAX_B_TN, SECONDDB_URI, THIRDDB_URI, FORTHDB_URI
 from utils import get_settings, save_group_settings
 from sample_info import tempDict 
 
@@ -56,26 +56,75 @@ class Media2(Document):
         indexes = ('$file_name', )
         collection_name = COLLECTION_NAME
 
+#3rd
+
+client3 = AsyncIOMotorClient(THIRDDB_URI)
+db3 = client[DATABASE_NAME]
+instance3 = Instance.from_db(db3)
+
+@instance3.register
+class Media3(Document):
+    file_id = fields.StrField(attribute='_id')
+    file_ref = fields.StrField(allow_none=True)
+    file_name = fields.StrField(required=True)
+    file_size = fields.IntField(required=True)
+    file_type = fields.StrField(allow_none=True)
+    mime_type = fields.StrField(allow_none=True)
+    caption = fields.StrField(allow_none=True)
+
+    class Meta:
+        indexes = ('$file_name', )
+        collection_name = COLLECTION_NAME
+
+#4th
+client4 = AsyncIOMotorClient(FORTHDB_URI)
+db4 = client[DATABASE_NAME]
+instance4 = Instance.from_db(db4)
+
+@instance4.register
+class Media4(Document):
+    file_id = fields.StrField(attribute='_id')
+    file_ref = fields.StrField(allow_none=True)
+    file_name = fields.StrField(required=True)
+    file_size = fields.IntField(required=True)
+    file_type = fields.StrField(allow_none=True)
+    mime_type = fields.StrField(allow_none=True)
+    caption = fields.StrField(allow_none=True)
+
+    class Meta:
+        indexes = ('$file_name', )
+        collection_name = COLLECTION_NAME
+
+
 async def choose_mediaDB():
     """This Function chooses which database to use based on the value of indexDB key in the dict tempDict."""
     global saveMedia
     if tempDict['indexDB'] == DATABASE_URI:
         logger.info("Using first db (Media)")
         saveMedia = Media
-    else:
+    elif tempDict['indexDB'] == SECONDDB_URI:
         logger.info("Using second db (Media2)")
         saveMedia = Media2
+    elif tempDict['indexDB'] == THIRDDB_URI:
+        logger.info("Using third db (Media3)")
+        saveMedia = Media3
+    elif tempDict['indexDB'] == FORTHDB_URI:
+        logger.info("Using fourth db (Media4)")
+        saveMedia = Media4
+    else:
+        logger.error("Invalid database URI specified in tempDict['indexDB']")
+
 
 async def save_file(media):
-    """Save file in database"""
-
-    # TODO: Find better way to get same file_id for same media to avoid duplicates
+    global saveMedia
     file_id, file_ref = unpack_new_file_id(media.file_id)
     file_name = re.sub(r"(_|\-|\.|\+)", " ", str(media.file_name))
+    DATABASES = [Media, Media2, Media3, Media4]
     try:
-        if await Media.count_documents({'file_id': file_id}, limit=1):
-            logger.warning(f'{getattr(media, "file_name", "NO_FILE")} is already saved in primary DB !')
-            return False, 0
+        for db in DATABASES:
+            if await db.count_documents({'file_id': file_id}, limit=1):
+                logger.warning(f'{getattr(media, "file_name", "NO_FILE")} is already saved in a database!')
+                return False, 0
         file = saveMedia(
             file_id=file_id,
             file_ref=file_ref,
@@ -91,16 +140,12 @@ async def save_file(media):
     else:
         try:
             await file.commit()
-        except DuplicateKeyError:  
-            logger.warning(
-                f'{getattr(media, "file_name", "NO_FILE")} is already saved in database'
-            )
-
+        except DuplicateKeyError:
+            logger.warning(f'{getattr(media, "file_name", "NO_FILE")} is already saved in the database')
             return False, 0
         else:
-            logger.info(f'{getattr(media, "file_name", "NO_FILE")} is saved to database')
+            logger.info(f'{getattr(media, "file_name", "NO_FILE")} is saved to the database')
             return True, 1
-
 
 
 async def get_search_results(chat_id, query, file_type=None, max_results=10, offset=0, filter=False):
@@ -144,7 +189,7 @@ async def get_search_results(chat_id, query, file_type=None, max_results=10, off
     if file_type:
         filter['file_type'] = file_type
 
-    total_results = ((await Media.count_documents(filter))+(await Media2.count_documents(filter)))
+    total_results = ((await Media.count_documents(filter))+(await Media2.count_documents(filter))+(await Media3.count_documents(filter))+(await Media4.count_documents(filter)))
 
     #verifies max_results is an even number or not
     if max_results%2 != 0: #if max_results is an odd number, add 1 to make it an even number
@@ -153,9 +198,13 @@ async def get_search_results(chat_id, query, file_type=None, max_results=10, off
 
     cursor = Media.find(filter)
     cursor2 = Media2.find(filter)
+    cursor3 = Media3.find(filter)
+    cursor4 = Media4.find(filter)
     # Sort by recent
     cursor.sort('$natural', -1)
     cursor2.sort('$natural', -1)
+    cursor3.sort('$natural', -1)
+    cursor4.sort('$natural', -1)
     # Slice files according to offset and max results
     cursor2.skip(offset).limit(max_results)
     # Get list of files
@@ -173,7 +222,7 @@ async def get_search_results(chat_id, query, file_type=None, max_results=10, off
     if next_offset >= total_results:
         next_offset = ''
     return files, next_offset, total_results
-
+        
 async def get_bad_files(query, file_type=None, filter=False):
     """For given query return (results, next_offset)"""
     query = query.strip()
@@ -203,11 +252,15 @@ async def get_bad_files(query, file_type=None, filter=False):
 
     cursor = Media.find(filter)
     cursor2 = Media2.find(filter)
+    cursor3 = Media3.find(filter)
+    cursor4 = Media4.find(filter)
     # Sort by recent
     cursor.sort('$natural', -1)
     cursor2.sort('$natural', -1)
+    cursor3.sort('$natural', -1)
+    cursor4.sort('$natural', -1)
     # Get list of files
-    files = ((await cursor2.to_list(length=(await Media2.count_documents(filter))))+(await cursor.to_list(length=(await Media.count_documents(filter)))))
+    files = ((await cursor2.to_list(length=(await Media2.count_documents(filter))))+(await cursor.to_list(length=(await Media.count_documents(filter))))+(await cursor.to_list(length=(await Media3.count_documents(filter))))+(await cursor.to_list(length=(await Media4.count_documents(filter)))))
 
     #calculate total results
     total_results = len(files)
@@ -218,10 +271,22 @@ async def get_file_details(query):
     filter = {'file_id': query}
     cursor = Media.find(filter)
     filedetails = await cursor.to_list(length=1)
-    if not filedetails:
-        cursor2 = Media2.find(filter)
-        filedetails = await cursor2.to_list(length=1)
-    return filedetails
+    if filedetails:
+        return filedetails
+    cursor_media2 = Media2.find(filter)
+    filedetails_media2 = await cursor_media2.to_list(length=1)
+    if filedetails_media2:
+        return filedetails_media2
+    cursor_media3 = Media3.find(filter)
+    filedetails_media3 = await cursor_media3.to_list(length=1)
+    if filedetails_media3:
+        return filedetails_media3
+    cursor_media4 = Media4.find(filter)
+    filedetails_media4 = await cursor_media4.to_list(length=1)
+    if filedetails_media4:
+        return filedetails_media4
+    
+
 
 def encode_file_id(s: bytes) -> str:
     r = b""
