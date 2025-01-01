@@ -9,9 +9,9 @@ logging.getLogger("imdbpy").setLevel(logging.ERROR)
 
 from pyrogram import Client, __version__
 from pyrogram.raw.all import layer
-from database.ia_filterdb import Media, Media2, choose_mediaDB, db as clientDB
+from database.ia_filterdb import Media, Media2, Media3, Media4, choose_mediaDB, db as clientDB
 from database.users_chats_db import db
-from info import SESSION, API_ID, API_HASH, BOT_TOKEN, LOG_STR, LOG_CHANNEL, SECONDDB_URI
+from info import SESSION, API_ID, API_HASH, BOT_TOKEN, LOG_STR, LOG_CHANNEL, SECONDDB_URI, FORTHDB_URI, THIRDDB_URI, PORT
 from utils import temp
 from typing import Union, Optional, AsyncGenerator
 from pyrogram import types
@@ -19,6 +19,8 @@ from Script import script
 from datetime import date, datetime 
 import pytz
 from sample_info import tempDict
+from aiohttp import web
+from plugins import web_server
 
 class Bot(Client):
 
@@ -40,6 +42,8 @@ class Bot(Client):
         await super().start()
         await Media.ensure_indexes()
         await Media2.ensure_indexes()
+        await Media3.ensure_indexes()
+        await Media4.ensure_indexes()
         #choose the right db by checking the free space
         stats = await clientDB.command('dbStats')
         #calculating the free db space from bytes to MB
@@ -47,6 +51,12 @@ class Bot(Client):
         if SECONDDB_URI and free_dbSize<10: #if the primary db have less than 10MB left, use second DB.
             tempDict["indexDB"] = SECONDDB_URI
             logging.info(f"Since Primary DB have only {free_dbSize} MB left, Secondary DB will be used to store datas.")
+        elif THIRDDB_URI and free_dbSize<10:  # Example condition for using THIRDDB_URI
+              tempDict["indexDB"] = THIRDDB_URI
+              logging.info(f"Since Primary and Secondary DB have limited space, THIRDDB_URI will be used.")
+        elif FORTHDB_URI and free_dbSize<10:  # Example condition for using FORTHDB_URI
+              tempDict["indexDB"] = FORTHDB_URI
+              logging.info(f"Since Primary, Secondary, and third have limited space, FORTHDB_URI will be used.")
         elif SECONDDB_URI is None:
             logging.error("Missing second DB URI !\n\nAdd SECONDDB_URI now !\n\nExiting...")
             exit()
@@ -66,7 +76,11 @@ class Bot(Client):
         now = datetime.now(tz)
         time = now.strftime("%H:%M:%S %p")
         await self.send_message(chat_id=LOG_CHANNEL, text=script.RESTART_TXT.format(today, time))
-
+        app = web.AppRunner(await web_server())
+        await app.setup()
+        bind_address = "0.0.0.0"
+        await web.TCPSite(app, bind_address, PORT).start()
+        
     async def stop(self, *args):
         await super().stop()
         logging.info("Bot stopped. Bye.")
