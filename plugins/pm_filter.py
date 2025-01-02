@@ -68,7 +68,7 @@ async def next_page(bot, query):
         btn = [
             [
                 InlineKeyboardButton(
-                    text=f"🎭[MMW™]☞[{get_size(file.file_size)}] ➵ {file.file_name}", callback_data=f'files#{file.file_id}'
+                    text=f"✨[{get_size(file.file_size)}] ➵ {file.file_name}", callback_data=f'files#{file.file_id}'
                 ),
             ]
             for file in files
@@ -587,7 +587,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
     elif query.data == "owner_info":
         buttons = [[
            InlineKeyboardButton('🚶‍♂️ʙᴀᴄᴋ', callback_data='start'),
-            InlineKeyboardButton('📞 Cᴏɴᴛᴀᴄᴛ ', url='https://t.me/mallumovieworldmain')
+            InlineKeyboardButton('📞 Cᴏɴᴛᴀᴄᴛ ', url='https://t.me/MRZSUPPORTS')
         ]]
         reply_markup = InlineKeyboardMarkup(buttons)
         await query.message.edit_text(
@@ -840,7 +840,7 @@ async def cb_handler(client: Client, query: CallbackQuery):
             InlineKeyboardButton('🔮sᴛᴀᴛᴜs', callback_data='stats'),
             InlineKeyboardButton('❣️sᴏᴜʀᴄᴇ', callback_data='source')
         ], [
-            InlineKeyboardButton('🧩 Rᴇᴘᴏʀᴛ Issᴜᴇ 🧩', url=f'http://t.me/maxmallumovieworldsupport'),
+            InlineKeyboardButton('🧩 Rᴇᴘᴏʀᴛ Issᴜᴇ 🧩', url=f'http://t.me/MRXSUPPORTZ'),
         
         ], [
             InlineKeyboardButton('♙ ʜᴏᴍᴇ', callback_data='start'),
@@ -1145,7 +1145,7 @@ async def auto_filter(client, msg, spoll=False):
         btn = [
             [
                 InlineKeyboardButton(
-                    text=f"🎭[MMW™]☞[{get_size(file.file_size)}] ➵ {file.file_name}", callback_data=f'{pre}#{file.file_id}'
+                    text=f"✨[{get_size(file.file_size)}] ➵ {file.file_name}", callback_data=f'{pre}#{file.file_id}'
                 ),
             ]
             for file in files
