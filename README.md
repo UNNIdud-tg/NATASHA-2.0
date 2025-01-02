@@ -91,6 +91,8 @@
 * `ADMINS`: Username or ID of Admin. Separate multiple Admins by space
 * `DATABASE_URI`: [mongoDB](https://www.mongodb.com) URI. Get this value from [mongoDB](https://www.mongodb.com). For more help watch this [video](https://youtu.be/1G1XwEOnxxo)
 * `SECONDDB_URI`: URI of the second database. Same as `DATABASE_URI` but use a different MongoDB URI.
+* `THIRDDB_URI`: URI of the third database. Same as `DATABASE_URI` but use a different MongoDB URI.
+* `FOURTHDB_URI`: URI of the fourth database. Same as `DATABASE_URI` but use a different MongoDB URI.
 * `DATABASE_NAME`: Name of the database in [mongoDB](https://www.mongodb.com). For more help watch this [video](https://youtu.be/1G1XwEOnxxo)
 * `LOG_CHANNEL` : A channel to log the activities of bot. Make sure bot is an admin in the channel.
 ### Optional Variables
